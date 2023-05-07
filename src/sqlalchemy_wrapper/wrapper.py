@@ -22,10 +22,15 @@ class ConfigDict(TypedDict):
 
 
 def _config_dict_from_class(obj: Type) -> ConfigDict:
-    return {
-        key: getattr(obj, key) for key in dir(obj)
-        if key in ("SQLALCHEMY_DATABASE_URI", "SQLALCHEMY_BINDS")
-    }
+    cfg = {}
+    for key in dir(obj):
+        if key not in ("SQLALCHEMY_DATABASE_URI", "SQLALCHEMY_BINDS"):
+            continue
+        attr = getattr(obj, key)
+        if callable(attr):
+            cfg[key] = attr()
+        else:
+            cfg[key] = attr
 
 
 @dataclass
