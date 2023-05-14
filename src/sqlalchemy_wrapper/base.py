@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy.orm import declarative_base, DeclarativeMeta
+from sqlalchemy.orm import DeclarativeMeta
 
 
 class BindMetaMixin(type):
@@ -19,24 +19,5 @@ class BindMetaMixin(type):
             cls.__table__.info['bind_key'] = bind_key
 
 
-class ArchiveMetaMixin(type):
-    def __init__(cls, classname: Any, bases: Any, dict_: Any) -> None:
-        archive_link = (
-            dict_.pop('__archive_link__', None)
-            or getattr(cls, '__archive_link__', None)
-        )
-
-        super(ArchiveMetaMixin, cls).__init__(classname, bases, dict_)
-
-        if (
-                archive_link is not None and
-                getattr(cls, '__table__', None) is not None
-        ):
-            cls.__table__.info['archive_link'] = archive_link
-
-
-class CustomMeta(ArchiveMetaMixin, BindMetaMixin, DeclarativeMeta):
+class CustomMeta(BindMetaMixin, DeclarativeMeta):
     pass
-
-
-base: CustomMeta = declarative_base(metaclass=CustomMeta)
