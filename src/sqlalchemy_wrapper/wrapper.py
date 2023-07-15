@@ -293,12 +293,6 @@ class AsyncSQLAlchemyWrapper(SQLAlchemyWrapper):
             self._session_factory, current_task)
 
     def _create_engine(self, uri, **kwargs) -> AsyncEngine:
-        if "connect_args" in self._engine_options:
-            self._engine_options["connect_args"].update(
-                {"check_same_thread": False}
-            )
-        else:
-            self._engine_options["connect_args"] = {"check_same_thread": False}
         return create_async_engine(uri, **self._engine_options, **kwargs)
 
     @property
