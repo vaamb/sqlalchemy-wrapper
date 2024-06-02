@@ -164,16 +164,16 @@ class SQLAlchemyWrapper:
     def _create_engine(self, uri, **kwargs) -> Engine:
         return create_engine(uri, **self._engine_options, **kwargs)
 
-    def _get_binds_list(self) -> list[str | None]:
+    def get_binds_list(self) -> list[str | None]:
         return [None, *list(self.config.binds.keys())]
 
-    def _get_tables_for_bind(self, bind: str = None) -> list:
+    def get_tables_for_bind(self, bind: str = None) -> list:
         return [
             table for table in self.Model.metadata.tables.values()
             if table.info.get("bind_key", None) == bind
         ]
 
-    def _get_uri_for_bind(self, bind: str = None) -> str:
+    def get_uri_for_bind(self, bind: str = None) -> str:
         if bind is None:
             return self.config.uri
         binds: dict = self.config.binds
@@ -185,11 +185,11 @@ class SQLAlchemyWrapper:
             return self.config.uri
         return binds[bind]
 
-    def _get_engine_for_bind(self, bind: str = None) -> Engine:
+    def get_engine_for_bind(self, bind: str = None) -> Engine:
         engine = self._engines.get(bind, None)
         if engine is None:
             engine = self._create_engine(
-                self._get_uri_for_bind(bind),
+                self.get_uri_for_bind(bind),
             )
             self._engines[bind] = engine
         return engine
@@ -213,30 +213,30 @@ class SQLAlchemyWrapper:
         """Provides a dict with all the linked tables as keys and their engine
         as values
         """
-        binds = self._get_binds_list()
+        binds = self.get_binds_list()
         result = {}
         for bind in binds:
-            engine = self._get_engine_for_bind(bind)
+            engine = self.get_engine_for_bind(bind)
             result.update(
-                {table: engine for table in self._get_tables_for_bind(bind)})
+                {table: engine for table in self.get_tables_for_bind(bind)})
         return result
 
     def create_all(self) -> None:
         """Create all the tables linked to `self.Model`
         """
-        binds = self._get_binds_list()
+        binds = self.get_binds_list()
         for bind in binds:
-            engine = self._get_engine_for_bind(bind)
-            tables = self._get_tables_for_bind(bind)
+            engine = self.get_engine_for_bind(bind)
+            tables = self.get_tables_for_bind(bind)
             self.Model.metadata.create_all(bind=engine, tables=tables)
 
     def drop_all(self) -> None:
         """Drop all the tables linked to `self.Model`
         """
-        binds = self._get_binds_list()
+        binds = self.get_binds_list()
         for bind in binds:
-            engine = self._get_engine_for_bind(bind)
-            tables = self._get_tables_for_bind(bind)
+            engine = self.get_engine_for_bind(bind)
+            tables = self.get_tables_for_bind(bind)
             self.Model.metadata.drop_all(bind=engine, tables=tables)
 
     def close(self) -> None:
@@ -324,10 +324,10 @@ class AsyncSQLAlchemyWrapper(SQLAlchemyWrapper):
     async def create_all(self) -> None:
         """Create all the tables linked to `self.Model`
         """
-        binds = self._get_binds_list()
+        binds = self.get_binds_list()
         for bind in binds:
-            engine = self._get_engine_for_bind(bind)
-            tables = self._get_tables_for_bind(bind)
+            engine = self.get_engine_for_bind(bind)
+            tables = self.get_tables_for_bind(bind)
             async with engine.begin() as conn:
                 await conn.run_sync(
                     self.Model.metadata.create_all, tables=tables
@@ -336,10 +336,10 @@ class AsyncSQLAlchemyWrapper(SQLAlchemyWrapper):
     async def drop_all(self) -> None:
         """Drop all the tables linked to `self.Model`
         """
-        binds = self._get_binds_list()
+        binds = self.get_binds_list()
         for bind in binds:
-            engine = self._get_engine_for_bind(bind)
-            tables = self._get_tables_for_bind(bind)
+            engine = self.get_engine_for_bind(bind)
+            tables = self.get_tables_for_bind(bind)
             async with engine.begin() as conn:
                 await conn.run_sync(
                     self.Model.metadata.drop_all, tables=tables
