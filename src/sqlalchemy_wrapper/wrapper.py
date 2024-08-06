@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import (
     declarative_base, DeclarativeBase, DeclarativeMeta, scoped_session,
     Session, sessionmaker)
+from sqlalchemy.sql.schema import MetaData
 
 from .base import CustomMeta
 
@@ -69,6 +70,7 @@ class SQLAlchemyWrapper:
             self,
             config: type | str | dict | None = None,
             model: Type[DeclarativeBase] | Type[DeclarativeMeta] | None = None,
+            metadata: Metadata | None = None,
             engine_options: dict | None = None,
             session_options: dict | None = None,
     ):
@@ -78,7 +80,7 @@ class SQLAlchemyWrapper:
         address(es). Cf the `init` method for a better description of
         """
         self.Model: DeclarativeBase | DeclarativeMeta = \
-            self._create_declarative_base(model)
+            self._create_declarative_base(model, metadata)
         self._engine_options = engine_options or {}
         self._session_options = session_options or {}
         self._session_factory: sessionmaker | None = None
@@ -125,14 +127,19 @@ class SQLAlchemyWrapper:
 
     def _create_declarative_base(
             self,
-            model: Type[DeclarativeBase] | Type[DeclarativeMeta] | None
+            model: Type[DeclarativeBase] | Type[DeclarativeMeta] | None,
+            metadata: Metadata | None,
     ) -> Any:
         if model is None:
-            return declarative_base(metaclass=CustomMeta)
+            return declarative_base(metaclass=CustomMeta, metadata=metadata)
         elif issubclass(model, DeclarativeMeta):
-            return declarative_base(metaclass=model)
+            return declarative_base(metaclass=model, metadata=metadata)
         elif issubclass(model, DeclarativeBase):
+            if metadata is not None:
+                model.metadata = metadata
             return model
+        else:
+            raise TypeError("model is not a valid SQLAlchemy declarative base")
 
     def _init_config(self, config_object: type | str | dict) -> None:
         if isinstance(config_object, type):
