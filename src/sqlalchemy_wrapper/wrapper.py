@@ -102,6 +102,15 @@ class SQLAlchemyWrapper:
         return self._session()
 
     @property
+    def engines(self) -> dict[str | None, Engine]:
+        if self._engines is None:
+            raise RuntimeError(
+                "No config option was provided. Use db.init(config) to finish "
+                "db initialization"
+            )
+        return self._engines
+
+    @property
     def config(self) -> Config:
         """The config with the main uri and optional secondary bindings uris"""
         if self._config is None:
@@ -290,6 +299,9 @@ class AsyncSQLAlchemyWrapper(SQLAlchemyWrapper):
     This will automatically create a scoped session and remove it at the end of
     the scope.
     """
+    _session_factory: async_sessionmaker | None
+    _session: async_scoped_session | None
+    _engines: dict[str | None, AsyncEngine]
 
     def _create_session_factory(self) -> None:
         self._session_factory = async_sessionmaker(
@@ -312,6 +324,15 @@ class AsyncSQLAlchemyWrapper(SQLAlchemyWrapper):
             )
         else:
             return self._session()
+
+    @property
+    def engines(self) -> dict[str | None, AsyncEngine]:
+        if self._engines is None:
+            raise RuntimeError(
+                "No config option was provided. Use db.init(config) to finish "
+                "db initialization"
+            )
+        return self._engines
 
     @asynccontextmanager
     async def scoped_session(self) -> AsyncGenerator[AsyncSession, None, None]:
