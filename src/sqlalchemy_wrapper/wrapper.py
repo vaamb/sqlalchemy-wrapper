@@ -92,25 +92,6 @@ class SQLAlchemyWrapper:
             self.init(config)
 
     @property
-    def session(self) -> Session:
-        """An SQLAlchemy session to manage ORM-objects"""
-        if self._session is None:
-            raise RuntimeError(
-                "No config option was provided. Use db.init(config) to finish "
-                "db initialization"
-            )
-        return self._session()
-
-    @property
-    def engines(self) -> dict[str | None, Engine]:
-        if self._engines is None:
-            raise RuntimeError(
-                "No config option was provided. Use db.init(config) to finish "
-                "db initialization"
-            )
-        return self._engines
-
-    @property
     def config(self) -> Config:
         """The config with the main uri and optional secondary bindings uris"""
         if self._config is None:
@@ -170,16 +151,6 @@ class SQLAlchemyWrapper:
             binds=config.get("SQLALCHEMY_BINDS", {})
         )
 
-    def _create_session_factory(self) -> None:
-        self._session_factory = sessionmaker(
-            binds=self.get_binds_mapping(),
-            **self._session_options,
-        )
-        self._session = scoped_session(self._session_factory)
-
-    def _create_engine(self, uri, **kwargs) -> Engine:
-        return create_engine(uri, **self._engine_options, **kwargs)
-
     def get_binds_list(self) -> list[str | None]:
         return [None, *list(self.config.binds.keys())]
 
@@ -210,6 +181,47 @@ class SQLAlchemyWrapper:
             self._engines[bind] = engine
         return engine
 
+    def get_binds_mapping(self) -> dict:
+        """Provides a dict with all the linked tables as keys and their engine
+        as values
+        """
+        binds = self.get_binds_list()
+        result = {}
+        for bind in binds:
+            engine = self.get_engine_for_bind(bind)
+            result.update(
+                {table: engine for table in self.get_tables_for_bind(bind)})
+        return result
+
+    def _create_session_factory(self) -> None:
+        self._session_factory = sessionmaker(
+            binds=self.get_binds_mapping(),
+            **self._session_options,
+        )
+        self._session = scoped_session(self._session_factory)
+
+    def _create_engine(self, uri, **kwargs) -> Engine:
+        return create_engine(uri, **self._engine_options, **kwargs)
+
+    @property
+    def session(self) -> Session:
+        """An SQLAlchemy session to manage ORM-objects"""
+        if self._session is None:
+            raise RuntimeError(
+                "No config option was provided. Use db.init(config) to finish "
+                "db initialization"
+            )
+        return self._session()
+
+    @property
+    def engines(self) -> dict[str | None, Engine]:
+        if self._engines is None:
+            raise RuntimeError(
+                "No config option was provided. Use db.init(config) to finish "
+                "db initialization"
+            )
+        return self._engines
+
     @contextmanager
     def scoped_session(self) -> Generator[Session, None, None]:
         """Provide a scoped session context that automatically tries to commit
@@ -224,18 +236,6 @@ class SQLAlchemyWrapper:
             raise e
         finally:
             self.close()
-
-    def get_binds_mapping(self) -> dict:
-        """Provides a dict with all the linked tables as keys and their engine
-        as values
-        """
-        binds = self.get_binds_list()
-        result = {}
-        for bind in binds:
-            engine = self.get_engine_for_bind(bind)
-            result.update(
-                {table: engine for table in self.get_tables_for_bind(bind)})
-        return result
 
     def create_all(self) -> None:
         """Create all the tables linked to `self.Model`
