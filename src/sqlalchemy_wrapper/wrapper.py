@@ -29,23 +29,25 @@ class ConfigDict(TypedDict):
     SQLALCHEMY_BINDS: dict[str, str]
 
 
-def _config_dict_from_class(obj: Type) -> ConfigDict:
-    cfg = {}
-    for key in dir(obj):
-        if key not in ("SQLALCHEMY_DATABASE_URI", "SQLALCHEMY_BINDS"):
-            continue
-        attr = getattr(obj, key)
-        if callable(attr):
-            cfg[key] = attr()
-        else:
-            cfg[key] = attr
-    return cfg
-
-
 @dataclass
 class Config:
     uri: str
     binds: dict[str, str]
+
+
+def _config_dict_from_class(obj: type) -> ConfigDict:
+    def get_value(attr):
+        if callable(attr):
+            return attr()
+        return attr
+
+    uri = getattr(obj, "SQLALCHEMY_DATABASE_URI")
+    binds = getattr(obj, "SQLALCHEMY_BINDS", {})
+
+    return {
+        "SQLALCHEMY_DATABASE_URI": get_value(uri),
+        "SQLALCHEMY_BINDS": get_value(binds),
+    }
 
 
 class SQLAlchemyWrapperBase(ABC, Generic[EngineT, SessionT]):
