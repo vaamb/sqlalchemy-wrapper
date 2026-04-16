@@ -16,7 +16,7 @@ class BindMetaMixin(type):
         super(BindMetaMixin, cls).__init__(classname, bases, dict_)
 
         if bind_key is not None and getattr(cls, '__table__', None) is not None:
-            cls.__table__.info['bind_key'] = bind_key
+            getattr(cls, '__table__').info['bind_key'] = bind_key
 
 
 class CustomMeta(BindMetaMixin, DeclarativeMeta):

@@ -5,7 +5,7 @@ from asyncio import current_task
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass
 from typing import (
-    Any, AsyncGenerator, Generator, Generic, NoReturn, TypeVar, TypedDict)
+    Any, AsyncGenerator, cast, Generator, Generic, NoReturn, TypeVar, TypedDict)
 import warnings
 
 from sqlalchemy.engine import create_engine, Engine
@@ -149,7 +149,7 @@ class SQLAlchemyWrapperBase(ABC, Generic[EngineT, SessionT]):
             )
         self._config = Config(
             uri=config["SQLALCHEMY_DATABASE_URI"],
-            binds=config.get("SQLALCHEMY_BINDS", {})
+            binds=cast(dict[str, str], config.get("SQLALCHEMY_BINDS", {}))
         )
 
     def get_binds_list(self) -> list[str | None]:
@@ -206,7 +206,7 @@ class SQLAlchemyWrapperBase(ABC, Generic[EngineT, SessionT]):
         """An SQLAlchemy session to manage ORM-objects"""
         if self._session is None:
             self._raise_config()
-        return self._session()
+        return cast(SessionT, self._session())
 
     @property
     def engines(self) -> dict[str | None, EngineT]:
@@ -230,6 +230,7 @@ class SQLAlchemyWrapper(SQLAlchemyWrapperBase[Engine, Session]):
     This will automatically create a scoped session and remove it at the end of
     the scope.
     """
+    _session: scoped_session[Session] | None
 
     def _create_session_factory(self) -> None:
         self._session_factory = sessionmaker(
@@ -306,6 +307,7 @@ class AsyncSQLAlchemyWrapper(SQLAlchemyWrapperBase[AsyncEngine, AsyncSession]):
     This will automatically create a scoped session and remove it at the end of
     the scope.
     """
+    _session: async_scoped_session[AsyncSession] | None
 
     def _create_session_factory(self) -> None:
         self._session_factory = async_sessionmaker(
