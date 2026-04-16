@@ -5,7 +5,7 @@ from asyncio import current_task
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass
 from typing import (
-    Any, AsyncGenerator, Generator, Generic, NoReturn, Type, TypeVar, TypedDict)
+    Any, AsyncGenerator, Generator, Generic, NoReturn, TypeVar, TypedDict)
 import warnings
 
 from sqlalchemy.engine import create_engine, Engine
@@ -66,7 +66,7 @@ class SQLAlchemyWrapperBase(ABC, Generic[EngineT, SessionT]):
     def __init__(
             self,
             config: type | str | dict | None = None,
-            model: Type[DeclarativeBase] | Type[DeclarativeMeta] | None = None,
+            model: type[DeclarativeBase] | type[DeclarativeMeta] | None = None,
             metadata: MetaData | None = None,
             engine_options: dict | None = None,
             session_options: dict | None = None,
@@ -118,7 +118,7 @@ class SQLAlchemyWrapperBase(ABC, Generic[EngineT, SessionT]):
 
     def _create_declarative_base(
             self,
-            model: Type[DeclarativeBase] | Type[DeclarativeMeta] | None,
+            model: type[DeclarativeBase] | type[DeclarativeMeta] | None,
             metadata: MetaData | None,
     ) -> Any:
         if model is None:
