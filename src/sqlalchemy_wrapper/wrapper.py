@@ -261,7 +261,8 @@ class SQLAlchemyWrapper(SQLAlchemyWrapperBase[Engine, Session]):
         for bind in binds:
             engine = self.get_engine_for_bind(bind)
             tables = self.get_tables_for_bind(bind)
-            self.Model.metadata.create_all(bind=engine, tables=tables)
+            with engine.begin() as conn:
+                self.Model.metadata.create_all(conn, tables=tables)
 
     def drop_all(self) -> None:
         """Drop all the tables linked to `self.Model`
@@ -270,7 +271,8 @@ class SQLAlchemyWrapper(SQLAlchemyWrapperBase[Engine, Session]):
         for bind in binds:
             engine = self.get_engine_for_bind(bind)
             tables = self.get_tables_for_bind(bind)
-            self.Model.metadata.drop_all(bind=engine, tables=tables)
+            with engine.begin() as conn:
+                self.Model.metadata.drop_all(conn, tables=tables)
 
     def close(self) -> None:
         """Close the current session
