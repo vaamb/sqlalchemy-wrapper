@@ -3,9 +3,9 @@ name = "sqlalchemy-wrapper"
 version = "0.4.0"
 description = "A utility wrapper around SQLAlchemy"
 authors = [
-    {name = "Valentin Ambroise", email = "valentin.ambroise@outlook.com"}
+    {name = "Valentin Ambroise"}
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.11"
 readme = "README.md"
 license = {file = "LICENSE"}
 dependencies = [
