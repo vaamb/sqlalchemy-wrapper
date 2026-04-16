@@ -153,13 +153,13 @@ class SQLAlchemyWrapperBase(ABC, Generic[EngineT, SessionT]):
     def get_binds_list(self) -> list[str | None]:
         return [None, *list(self.config.binds.keys())]
 
-    def get_tables_for_bind(self, bind: str = None) -> list[Table]:
+    def get_tables_for_bind(self, bind: str | None = None) -> list[Table]:
         return [
             table for table in self.Model.metadata.tables.values()
             if table.info.get("bind_key", None) == bind
         ]
 
-    def get_uri_for_bind(self, bind: str = None) -> str:
+    def get_uri_for_bind(self, bind: str | None = None) -> str:
         if bind is None:
             return self.config.uri
         binds: dict = self.config.binds
@@ -171,7 +171,7 @@ class SQLAlchemyWrapperBase(ABC, Generic[EngineT, SessionT]):
             return self.config.uri
         return binds[bind]
 
-    def get_engine_for_bind(self, bind: str = None) -> EngineT:
+    def get_engine_for_bind(self, bind: str | None = None) -> EngineT:
         engine = self._engines.get(bind, None)
         if engine is None:
             engine = self._create_engine(
@@ -208,7 +208,7 @@ class SQLAlchemyWrapperBase(ABC, Generic[EngineT, SessionT]):
 
     @property
     def engines(self) -> dict[str | None, EngineT]:
-        if self._engines is None:
+        if not self._engines:
             self._raise_config()
         return self._engines
 
