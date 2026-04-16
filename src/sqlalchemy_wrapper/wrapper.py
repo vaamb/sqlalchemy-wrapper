@@ -230,7 +230,7 @@ class SQLAlchemyWrapper(SQLAlchemyWrapperBase[Engine, Session]):
     This will automatically create a scoped session and remove it at the end of
     the scope.
     """
-    _session: scoped_session[Session] | None
+    _session: scoped_session[Session] | None  # ty: ignore[invalid-type-form]
 
     def _create_session_factory(self) -> None:
         self._session_factory = sessionmaker(
