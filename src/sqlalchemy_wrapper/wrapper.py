@@ -5,7 +5,7 @@ from asyncio import current_task
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass
 from typing import (
-    Any, AsyncGenerator, Generator, Generic, NoReturn, Type, TypeVar, TypedDict)
+    Any, AsyncGenerator, cast, Generator, Generic, NoReturn, TypeVar, TypedDict)
 import warnings
 
 from sqlalchemy.engine import create_engine, Engine
@@ -29,23 +29,25 @@ class ConfigDict(TypedDict):
     SQLALCHEMY_BINDS: dict[str, str]
 
 
-def _config_dict_from_class(obj: Type) -> ConfigDict:
-    cfg = {}
-    for key in dir(obj):
-        if key not in ("SQLALCHEMY_DATABASE_URI", "SQLALCHEMY_BINDS"):
-            continue
-        attr = getattr(obj, key)
-        if callable(attr):
-            cfg[key] = attr()
-        else:
-            cfg[key] = attr
-    return cfg
-
-
 @dataclass
 class Config:
     uri: str
     binds: dict[str, str]
+
+
+def _config_dict_from_class(obj: type) -> ConfigDict:
+    def get_value(attr):
+        if callable(attr):
+            return attr()
+        return attr
+
+    uri = getattr(obj, "SQLALCHEMY_DATABASE_URI")
+    binds = getattr(obj, "SQLALCHEMY_BINDS", {})
+
+    return {
+        "SQLALCHEMY_DATABASE_URI": get_value(uri),
+        "SQLALCHEMY_BINDS": get_value(binds),
+    }
 
 
 class SQLAlchemyWrapperBase(ABC, Generic[EngineT, SessionT]):
@@ -64,7 +66,7 @@ class SQLAlchemyWrapperBase(ABC, Generic[EngineT, SessionT]):
     def __init__(
             self,
             config: type | str | dict | None = None,
-            model: Type[DeclarativeBase] | Type[DeclarativeMeta] | None = None,
+            model: type[DeclarativeBase] | type[DeclarativeMeta] | None = None,
             metadata: MetaData | None = None,
             engine_options: dict | None = None,
             session_options: dict | None = None,
@@ -116,7 +118,7 @@ class SQLAlchemyWrapperBase(ABC, Generic[EngineT, SessionT]):
 
     def _create_declarative_base(
             self,
-            model: Type[DeclarativeBase] | Type[DeclarativeMeta] | None,
+            model: type[DeclarativeBase] | type[DeclarativeMeta] | None,
             metadata: MetaData | None,
     ) -> Any:
         if model is None:
@@ -147,7 +149,7 @@ class SQLAlchemyWrapperBase(ABC, Generic[EngineT, SessionT]):
             )
         self._config = Config(
             uri=config["SQLALCHEMY_DATABASE_URI"],
-            binds=config.get("SQLALCHEMY_BINDS", {})
+            binds=cast(dict[str, str], config.get("SQLALCHEMY_BINDS", {}))
         )
 
     def get_binds_list(self) -> list[str | None]:
@@ -204,7 +206,7 @@ class SQLAlchemyWrapperBase(ABC, Generic[EngineT, SessionT]):
         """An SQLAlchemy session to manage ORM-objects"""
         if self._session is None:
             self._raise_config()
-        return self._session()
+        return cast(SessionT, self._session())
 
     @property
     def engines(self) -> dict[str | None, EngineT]:
@@ -228,6 +230,7 @@ class SQLAlchemyWrapper(SQLAlchemyWrapperBase[Engine, Session]):
     This will automatically create a scoped session and remove it at the end of
     the scope.
     """
+    _session: scoped_session[Session] | None  # ty: ignore[invalid-type-form]
 
     def _create_session_factory(self) -> None:
         self._session_factory = sessionmaker(
@@ -304,6 +307,7 @@ class AsyncSQLAlchemyWrapper(SQLAlchemyWrapperBase[AsyncEngine, AsyncSession]):
     This will automatically create a scoped session and remove it at the end of
     the scope.
     """
+    _session: async_scoped_session[AsyncSession] | None
 
     def _create_session_factory(self) -> None:
         self._session_factory = async_sessionmaker(
